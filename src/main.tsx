@@ -16,7 +16,7 @@ const router = createBrowserRouter(
       errorElement: <ErrorBoundary />,
     },
   ],
-  { basename: '/pomofocus-clone' },
+  { basename: '/produdoro' },
 );
 
 const GlobalStyles = createGlobalStyle`
