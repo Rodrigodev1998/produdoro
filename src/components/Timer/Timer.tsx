@@ -1,0 +1,273 @@
+import { SEO } from '@components/common/';
+import { ONE_SECOND } from '@constants';
+import { useConfigStore, useTasksStore, useTimerStore } from '@stores';
+import type { TimerName } from '@types';
+import { colors, media, padWithZeroes, spacing } from '@utils';
+import { playAudio } from '@utils/playAudio';
+import { useEffect, useRef } from 'react';
+import { FaStepForward } from 'react-icons/fa';
+import styled, { css } from 'styled-components';
+import { shallow } from 'zustand/shallow';
+
+type Tabs = {
+  name: TimerName;
+  short: string;
+  long: string;
+};
+
+const S = {
+  Button: styled.button<{ $isPlaying: boolean }>`
+    all: unset;
+    background-color: ${colors.WHITE};
+    border-radius: 3px;
+    box-shadow: inset 0 -6px ${colors.TRANSPARENT_BLACK};
+    color: ${({ theme }) => theme.bg};
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    min-width: 120px;
+    padding: ${spacing.S};
+    text-align: center;
+    text-transform: uppercase;
+
+    &:focus-visible {
+      outline: auto;
+    }
+
+    ${({ $isPlaying }) =>
+      $isPlaying
+        ? css`
+            box-shadow: unset;
+            transform: scaleY(0.94) translateY(2px);
+          `
+        : null}
+
+    @media ${media.greaterThan('sm')} {
+      font-size: 24px;
+      min-width: 160px;
+    }
+  `,
+
+  Container: styled.div`
+    background-color: ${colors.TRANSPARENT_WHITE};
+    border-radius: 3px;
+    display: grid;
+    gap: ${spacing.XL};
+    margin: 0 auto ${spacing.XL};
+    max-width: 480px;
+    padding: ${spacing.S};
+    place-items: center;
+  `,
+
+  ForwardButton: styled.button<{ $isPlaying: boolean }>`
+    all: unset;
+    cursor: pointer;
+    opacity: ${({ $isPlaying }) => ($isPlaying ? 1 : 0)};
+    position: absolute;
+    right: ${spacing.XL};
+    transition: opacity 0.3s;
+    visibility: ${({ $isPlaying }) => ($isPlaying ? 'visible' : 'hidden')};
+
+    &:focus-visible {
+      outline: auto;
+    }
+
+    &:active {
+      transform: scaleY(0.98) translateY(2px);
+    }
+
+    &:hover {
+      opacity: ${({ $isPlaying }) => ($isPlaying ? 0.8 : 0)};
+    }
+  `,
+
+  Tabs: styled.ul`
+    align-items: center;
+    display: flex;
+    justify-content: center;
+  `,
+
+  Tab: styled.li<{ $isSelected: boolean }>`
+    background-color: ${({ $isSelected }) =>
+      $isSelected ? colors.TRANSPARENT_BLACK : 'none'};
+    border-radius: 3px;
+    cursor: pointer;
+
+    &:active {
+      transform: scaleY(0.98) translateY(2px);
+    }
+
+    > button {
+      background: none;
+      border: none;
+      color: ${colors.WHITE};
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: ${({ $isSelected }) => ($isSelected ? '600' : 'unset')};
+      padding: ${spacing.XXXS};
+    }
+
+    .tab-long {
+      display: none;
+    }
+
+    @media ${media.greaterThan('sm')} {
+      .tab-long {
+        display: unset;
+      }
+
+      .tab-short {
+        display: none;
+      }
+    }
+  `,
+
+  Time: styled.h2`
+    font-size: 72px;
+    font-weight: 700;
+
+    @media ${media.greaterThan('lg')} {
+      font-size: 102px;
+    }
+  `,
+
+  Controls: styled.div`
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    width: 100%;
+  `,
+};
+
+const Tabs: Tabs[] = [
+  {
+    name: 'POMO',
+    short: 'Foco',
+    long: 'Foco',
+  },
+  {
+    name: 'SHORT',
+    short: 'Pausa curta',
+    long: 'Pausa Curta',
+  },
+  {
+    name: 'LONG',
+    short: 'Pausa Longa',
+    long: 'Pausa Longa',
+  },
+];
+
+export function Timer() {
+  const timerActions = useTimerStore(
+    (state) => ({
+      startTimer: state.startTimer,
+      pauseTimer: state.pauseTimer,
+      changeCurrentTimer: state.changeCurrentTimer,
+      forwardTimer: state.forwardTimer,
+      play: state.play,
+    }),
+    shallow,
+  );
+  const timerState = useTimerStore(
+    (state) => ({
+      seconds: state.seconds,
+      isPlaying: state.isPlaying,
+      currentTimerName: state.currentTimerName,
+    }),
+    shallow,
+  );
+  const config = useConfigStore((state) => state.config);
+  const taskTitle = useTasksStore((state) => state.selectedTask?.title);
+  const interval = useRef(0);
+
+  useEffect(() => {
+    if (timerState.isPlaying) {
+      interval.current = setInterval(() => {
+        timerActions.play(config);
+      }, ONE_SECOND);
+    }
+
+    return () => {
+      clearInterval(interval.current);
+    };
+  }, [
+    timerState.isPlaying,
+    config.sound?.alarm?.gain,
+    config.sound?.alarm?.sound,
+  ]);
+
+  const handleTabChange = (tabName: TimerName) => () => {
+    if (timerState.currentTimerName === tabName) return;
+    timerActions.changeCurrentTimer(tabName);
+  };
+
+  const handleClick = () => {
+    playAudio();
+    if (timerState.isPlaying) {
+      timerActions.pauseTimer();
+      return;
+    }
+
+    timerActions.startTimer();
+  };
+
+  const time =
+    config.timer.time[timerState.currentTimerName] - timerState.seconds;
+  const minutes = Math.floor(time / 60);
+  const seconds = Math.floor(time % 60);
+  const currentTime = `${padWithZeroes(minutes)}:${padWithZeroes(seconds)}`;
+  const defaultTitle =
+    timerState.currentTimerName === 'POMO'
+      ? `${currentTime} | Time to focus!`
+      : `${currentTime} | Time for a break!`;
+
+  const title = taskTitle ? `${currentTime} | ${taskTitle}` : defaultTitle;
+
+  return (
+    <S.Container>
+      <SEO
+        title={title}
+        description="Pomofocus is a Pomodoro app with a to-do list that helps you stay focused and get more done in less time. Try it now"
+        url="https://fcasibu.github.io/pomofocus-clone"
+        // TODO: change this to a better image
+        ogImage="https://picsum.photos/536/354"
+      />
+      <header>
+        <S.Tabs>
+          {Tabs.map(({ name, short, long }) => (
+            <S.Tab
+              key={name}
+              $isSelected={name === timerState.currentTimerName}
+            >
+              <button type="button" onClick={handleTabChange(name)}>
+                <span className="tab-short">{short}</span>
+                <span className="tab-long">{long}</span>
+              </button>
+            </S.Tab>
+          ))}
+        </S.Tabs>
+      </header>
+      <S.Time>{currentTime}</S.Time>
+      <S.Controls>
+        <S.Button
+          type="button"
+          $isPlaying={timerState.isPlaying}
+          onClick={handleClick}
+        >
+          {timerState.isPlaying ? 'Pare' : 'Vamo'}
+        </S.Button>
+        <S.ForwardButton
+          type="button"
+          $isPlaying={timerState.isPlaying}
+          onClick={() => timerActions.forwardTimer(config.timer)}
+          aria-label="Skip Forward"
+        >
+          <FaStepForward size={30} />
+        </S.ForwardButton>
+      </S.Controls>
+    </S.Container>
+  );
+}
+
+export default Timer;
