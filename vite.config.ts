@@ -13,7 +13,7 @@ const reactPlugin = react({
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [reactPlugin, tsconfigPaths()],
-  base: '/pomofocus-clone/',
+  base: '/Produdoro/',
   build: {
     minify: 'terser',
   },

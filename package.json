@@ -1,7 +1,7 @@
 {
-  "name": "Pomofocus Clone",
+  "name": "Produdoro",
   "private": true,
-  "homepage": "https://fcasibu.github.io/pomofocus-clone",
+  "homepage": "https://Rodrigodev1998.github.io/Produdoro",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
@@ -9,6 +9,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "start": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
     "format": "prettier src/**/*.{tsx,ts} --write",
     "eslint": "eslint src/**/*.{tsx,ts}",
     "stylelint": "stylelint src/**/*.{tsx,ts}",
@@ -41,6 +43,7 @@
     "babel-plugin-styled-components": "^2.1.1",
     "eslint": "^8.35.0",
     "eslint-plugin-react": "^7.32.2",
+    "gh-pages": "^6.0.0",
     "prettier": "^2.8.4",
     "stylelint": "^15.2.0",
     "stylelint-config-recommended": "^10.0.1",
